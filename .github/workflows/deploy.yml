@@ -44,8 +44,8 @@ jobs:
       - name: Download Frontend
         uses: actions/download-artifact@v4
         with:
-          name: 'frontend-build'
-          path: 'backend/src/main/resources/static'
+          name: frontend-build
+          path: backend/src/main/resources/static
 
       - name: Build with Maven
         run: mvn package --file backend/pom.xml
