@@ -1,16 +1,22 @@
 package de.neuefische.backend;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomOAuth2UserService customOAuth2UserService;
 
     @Value("${app.url}")
     private String appUrl;
@@ -20,10 +26,16 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(a -> a
-                                .requestMatchers("/api/auth/me").authenticated()
+                                .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+                                .requestMatchers("/api/**").authenticated()
                                 .anyRequest().permitAll()
                         )
-                .oauth2Login(o -> o.defaultSuccessUrl(appUrl));
+                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .oauth2Login(o -> o
+                        .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
+                        .defaultSuccessUrl(appUrl))
+                .logout(l -> l.logoutSuccessUrl(appUrl));
+
         return http.build();
     }
 
