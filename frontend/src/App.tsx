@@ -1,31 +1,34 @@
 import './App.css'
 import {useEffect, useState} from "react";
 import axios from "axios";
+import type {AppUser} from "./appuser.ts";
+import {Routes, Route} from "react-router";
+import ProtectedRoutes from "./ProtectedRoutes.tsx";
+import Home from "./Home.tsx";
 
 function App() {
-  const [username, setUsername] = useState<string>('');
-  const [avatar, setAvatar] = useState<string>('');
+    const [user, setUser] = useState<AppUser | null | undefined>(undefined);
 
-  function login() {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:8080' : window.location.origin;
-    window.open(host + '/oauth2/authorization/github', '_self');
-  }
+    useEffect(() => {
+        axios.get("api/auth/me")
+            .then(res => setUser(res.data))
+            .catch(() => setUser(null));
+    }, []);
 
-  useEffect(() => {
-    axios.get("api/auth/me")
-        .then(res => {
-          setUsername(res.data.username)
-          setAvatar(res.data.avatar_url)
-        })
-  });
+    return (
+        <Routes>
+            <Route path="/" element={<Home user={user} />}/>
+            <Route element={<ProtectedRoutes user={user}/>}>
+                <Route path="/secured"
+                       element="Du bist auf einer gesicherten Seite, die du nur erreichst, wenn du eingeloggt bist!"/>
+            </Route>
 
-  return (
-      <>
-        <button onClick={login}>Login with GitHub</button>
-        {username ? <p>{username}</p> : <p>Nicht eingeloggt</p>}
-        <img src={avatar} />
-      </>
-  )
+            <Route element={<ProtectedRoutes user={user} role="ADMIN"/>}>
+                <Route path="/secured-admin"
+                       element="Du bist auf einer gesicherten Seite, die du nur erreichst, wenn du eingeloggt und ADMIN bist!"/>
+            </Route>
+        </Routes>
+    )
 }
 
 export default App
